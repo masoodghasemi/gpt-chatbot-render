@@ -20,11 +20,12 @@
       console.log(msg);
     };
 
-    const init = async () => {
+    async function initGPT() {
       const btn = document.getElementById("ask-button");
       const input = document.getElementById("query-input");
       const responseDiv = document.getElementById("response");
 
+      logToUI("✅ Tableau API detected. Initializing...");
       try {
         await tableau.extensions.initializeAsync();
         logToUI("✅ Tableau extension initialized");
@@ -38,21 +39,25 @@
           }
 
           responseDiv.innerText = "Thinking...";
-          logToUI("📥 User query: " + query);
+          logToUI("📥 Query: " + query);
 
-          let data = [], cols = [];
-
+          let data = [], cols = [], worksheetName = "";
           try {
             const worksheet = tableau.extensions.dashboardContent.dashboard.worksheets[0];
+            worksheetName = worksheet.name;
+            logToUI("📄 Using worksheet: " + worksheetName);
+
             const summary = await worksheet.getSummaryDataAsync();
             cols = summary.columns.map(c => c.fieldName);
             data = summary.data.map(row =>
               Object.fromEntries(row.map((cell, i) => [cols[i], cell.formattedValue]))
             );
-            logToUI(`📊 Retrieved ${data.length} rows`);
+
+            logToUI("🧩 Columns: " + cols.join(", "));
+            logToUI("📈 Rows: " + data.length);
           } catch (err) {
-            logToUI("❌ Failed to read worksheet: " + err.message);
-            responseDiv.innerText = "❌ Failed to read worksheet.";
+            logToUI("❌ Worksheet access failed: " + err.message);
+            responseDiv.innerText = "❌ Error reading worksheet.";
             return;
           }
 
@@ -61,10 +66,12 @@ You're helping a Tableau user. They asked:
 
 "${query}"
 
-Here is the worksheet data (sample of up to 30 rows):
+Here is the data from worksheet "${worksheetName}" (up to 30 rows):
 
 ${JSON.stringify(data.slice(0, 30), null, 2)}
 `.trim();
+
+          logToUI("🧾 Final Prompt:\n" + prompt);
 
           try {
             const res = await fetch("https://gpt-proxy-5hrz.onrender.com/ask", {
@@ -72,25 +79,32 @@ ${JSON.stringify(data.slice(0, 30), null, 2)}
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ query: prompt })
             });
+
+            if (!res.ok) {
+              const errText = await res.text();
+              throw new Error(`HTTP ${res.status}: ${errText}`);
+            }
+
             const result = await res.json();
-            responseDiv.innerText = result.response || "❌ No response from GPT.";
+            logToUI("🤖 GPT says: " + result.response);
+            responseDiv.innerText = result.response || "❌ No response.";
           } catch (err) {
             logToUI("❌ GPT fetch failed: " + err.message);
-            responseDiv.innerText = "❌ GPT fetch failed.";
+            responseDiv.innerText = "❌ GPT fetch failed: " + err.message;
           }
         });
-
       } catch (err) {
-        logToUI("❌ Tableau init failed: " + err.message);
+        logToUI("❌ Tableau extension failed to initialize: " + err.message);
+        document.getElementById("ask-button").disabled = true;
       }
-    };
+    }
 
     document.addEventListener("DOMContentLoaded", () => {
-      logToUI("✅ DOM loaded");
+      logToUI("✅ DOM loaded. Waiting for Tableau...");
       const poll = setInterval(() => {
         if (typeof tableau !== "undefined" && tableau.extensions) {
           clearInterval(poll);
-          init();
+          initGPT();
         }
       }, 100);
     });

@@ -1,23 +1,35 @@
 body {
   font-family: Arial, sans-serif;
-  margin: 20px;
+  background: #f5f5f5;
+  padding: 20px;
 }
 #chat-container {
-  background: #f9f9f9;
+  background: white;
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  max-width: 700px;
+  margin: auto;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
 }
-input, button {
-  padding: 10px;
-  margin-top: 10px;
+#query-input {
   width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+}
+#ask-button {
+  padding: 10px 20px;
+  background: #007aff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+}
+#ask-button:disabled {
+  background: #ccc;
 }
 #response {
-  margin-top: 20px;
+  background: #eee;
+  padding: 10px;
+  margin-top: 10px;
+  min-height: 60px;
   white-space: pre-wrap;
-  background: #fff;
-  padding: 15px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
 }
